@@ -23,8 +23,10 @@
 
 package de.appplant.cordova.plugin.localnotification;
 
+import android.support.v4.app.NotificationCompat;
 import de.appplant.cordova.plugin.notification.Builder;
 import de.appplant.cordova.plugin.notification.Notification;
+import org.json.JSONObject;
 
 /**
  * The alarm receiver is triggered when a scheduled alarm is fired. This class
@@ -33,6 +35,8 @@ import de.appplant.cordova.plugin.notification.Notification;
  * sound and it vibrates the phone.
  */
 public class TriggerReceiver extends de.appplant.cordova.plugin.notification.TriggerReceiver {
+
+    static final int EVERY_WEEK = 604800;
 
     /**
      * Called when a local notification was triggered. Does present the local
@@ -46,6 +50,20 @@ public class TriggerReceiver extends de.appplant.cordova.plugin.notification.Tri
     @Override
     public void onTrigger (Notification notification, boolean updated) {
         super.onTrigger(notification, updated);
+
+        try {
+            JSONObject jsonObject = notification.getOptions().getDict();
+            int lt = Integer.parseInt(jsonObject.get("at").toString()) + EVERY_WEEK;
+            jsonObject.put("at", lt);
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(notification.getContext());
+            Notification newNotification = new Notification(notification.getContext(), notification.getOptions().parse(jsonObject), builder, TriggerReceiver.class);
+            newNotification.schedule();
+            if (!updated) {
+                LocalNotification.fireEvent("trigger", notification);
+            }
+        } catch (Exception e) {
+            //do nothing as of now.
+        }
 
         if (!updated) {
             LocalNotification.fireEvent("trigger", notification);
